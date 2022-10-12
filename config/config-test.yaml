@@ -1,5 +1,5 @@
 # Configure parameter values for development time. These will be overriden at runtime with the user provided data
-NAAS_CLUSTER: "N4G_ULI_MNG_CLUSTER1"
+NAAS_CLUSTER: "H4G_ULI_MNG_OSS_South"
 PROVISION_MODE: "OFFLINE_SIM"
 BACKLOG_DURATION: "72h"
 BATCH_SIZE: 500

@@ -4,6 +4,12 @@ application:
     description: H4G ULI Management
     author: Omer Narmanlioglu
   schema:
+    - name: DEBUG_MODE
+      displayName: Debug Mode (F or T)
+      description: Debug Mode (F or T).
+      defaultValue: "F"
+      type: string
+      group: General Settings
     - name: NAAS_CLUSTER
       displayName: NaaS Cluster
       description: Name of NaaS cluster for this application.

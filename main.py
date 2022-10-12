@@ -4,12 +4,13 @@ from utils.api_init import naas
 from utils.api_init import pgw
 from utils.api_init import xpaas
 import pandas as pd
+import numpy as np
 import time
 import math
 import json
 
 logger.info(f"pandas version is " + pd.__version__)
-logger.info(f"json version is " + json.__version__)
+logger.info(f"numpy version is " + np.__version__)
 
 # STATIC PARAMETER DEFINITIONS
 kpiList = ["DEV_SGNB_ADD_SUCC_RT", "DEV_SGNB_ADD_ATTEMPTS"]
@@ -22,6 +23,7 @@ moParameters = {'NSADCMGMTCONFIG': [{"place": "attributes",
                                      }
                                     ]}
 
+debugMode = True if context.get('DEBUG_MODE') == "T" else False
 batchSize = int(context.get('BATCH_SIZE'))
 backLogDuration = context.get('BACKLOG_DURATION')
 targetCluster = context.get('NAAS_CLUSTER')
@@ -30,6 +32,7 @@ attThreshold = int(context.get('MIN_REQ_ATTEMPT_THRESHOLD'))
 maxNumberOfAction = int(context.get('ACTION_LIMIT'))
 work_items = []
 
+logger.info(f"UI VARIABLES: DEBUG_MODE IS {debugMode}")
 logger.info(f"UI VARIABLES: NAAS_CLUSTER IS {targetCluster}")
 logger.info(f"UI VARIABLES: PROVISION_MODE IS {context.get('PROVISION_MODE')}")
 logger.info(f"UI VARIABLES: BACKLOG_DURATION IS {backLogDuration}")
@@ -40,7 +43,6 @@ logger.info(f"UI VARIABLES: ACTION_LIMIT IS {maxNumberOfAction}")
 
 
 # COMMON FUNCTIONS
-
 def generateReport(dataFrame, prefix, limit):
     logger.info(f'#{prefix}#{"#".join(dataFrame.keys().tolist())}')
 
@@ -54,6 +56,7 @@ def generateReport(dataFrame, prefix, limit):
         logger.info(f'#{prefix}#{"#".join(eachRow)}')
 
         if rowCounter == limit:
+            logger.info("Report is clipped due to max report size")
             break
 
 
@@ -62,7 +65,8 @@ def elapsedTimeMeasure(method):
         ts = time.time()
         result = method(*args, **kw)
         te = time.time()
-        logger.info(f"Elapsed time for {method.__name__} is {round(te - ts, 2)} sec")
+        if debugMode:
+            logger.info(f"Elapsed time for {method.__name__} is {round(te - ts, 2)} sec")
         return result
 
     return timed
@@ -86,8 +90,9 @@ def joinTwoListWithMultipleAttribute(lst1, lst2, left_on, right_on):
 
 
 def printResponseDetails(page_info):
-    logger.info(f"Total element size is {page_info['numberOfElements']}")
-    logger.info(f"Total required request count is {page_info['numberOfPages']}")
+    if debugMode:
+        logger.info(f"Total element size is {page_info['numberOfElements']}")
+        logger.info(f"Total required request count is {page_info['numberOfPages']}")
 
 
 def getNextPageUrl(page_info):
@@ -178,7 +183,8 @@ def getNaasMoFromURL(url):
         each_str = each.split("=")
         paramSet[each_str[0]] = each_str[1]
 
-    logger.info(paramSet)
+    if debugMode:
+        logger.info(paramSet)
     response = naas.api.mos.find_mos(params=paramSet).body
     return response
 
@@ -246,7 +252,8 @@ def getNaasFromURL(url):
         each_str = each.split("=")
         paramSet[each_str[0]] = each_str[1]
 
-    logger.info(paramSet)
+    if debugMode:
+        logger.info(paramSet)
     response = naas.api.clusters.get_cluster_cells(targetCluster, params=paramSet).body
     return response
 
@@ -264,7 +271,6 @@ def populateCellList(lst, jsonFmt):
 def getTargetCells():
     cellList = []
     response = naas.api.clusters.get_cluster_cells(targetCluster, params={'fields': '_id,name,guid'}).body
-    # logger.info(response)
 
     populateCellList(lst=cellList, jsonFmt=response)
 
@@ -307,7 +313,8 @@ def populatePmList(lst, jsonFmt):
             dataPoint = eachCellObj['data_points']
             if len(dataPoint) != 1:
                 logger.info(f"populatePmList.dataPoint.size is {len(dataPoint)}")
-                logger.info(dataPoint)
+                if debugMode:
+                    logger.info(dataPoint)
 
             dataPoint_ = dataPoint[0]
             try:
@@ -337,7 +344,8 @@ def getTargetPmData(cellList):
     logger.info(f"Required batch count is {batchCount} to get {len(cellList)} cell data")
 
     for ii in range(batchCount):
-        logger.info(f"PM Set Batch {ii + 1} is procedeed")
+        if debugMode:
+            logger.info(f"PM Set Batch {ii + 1} is procedeed")
 
         minIdx = int(batchSize * ii)
         maxIdx = min(int(batchSize * (ii + 1)), len(cellList))
@@ -360,7 +368,8 @@ def getTargetPmData(cellList):
         nextPageInfo = getNextPageUrl(page_info=pagination)
 
         if not nextPageInfo['EOF']:
-            logger.info("There is a pagination on XPaaS request. Re-format the size.")
+            if debugMode:
+                logger.info("There is a pagination on XPaaS request. Re-format the size.")
 
     if len(pmList) == 0:
         pmList.append(pmObject(abstractId=None, kpis={}))
@@ -383,14 +392,20 @@ def getStatesAccordingToPM(dataFrame):
             DEV_SGNB_ADD_SUCC_RT = None
             DEV_SGNB_ADD_ATTEMPTS = None
 
-        # TODO: NOT TESTED PART
+        try:
+            UPPERLAYERINDICATIONSWITCH = str(dataFrame.loc[idx, 'paramSet'].get('UPPERLAYERINDICATIONSWITCH'))
+        except:
+            dataFrame.loc[idx, 'PM_STATE'] = "NOT_CHECKED"
+            dataFrame.loc[idx, 'DECISION'] = "MISSING_CM"
+            continue
+
         if (int(DEV_SGNB_ADD_ATTEMPTS) if DEV_SGNB_ADD_ATTEMPTS is not None else None) == 0:
             dataFrame.loc[idx, 'PM_STATE'] = "KPI_DATA_IS_NOT_ENOUGH"
             # dataFrame.loc[idx, 'DECISION'] = 'NONE' -- CHANGED AT 07-OCT-2022
             stateTable['KPI_DATA_IS_NOT_ENOUGH'] = stateTable['KPI_DATA_IS_NOT_ENOUGH'] + 1
 
             # ADDED AT 07-OCT-2022
-            if str(dataFrame.loc[idx, 'paramSet'].get('UPPERLAYERINDICATIONSWITCH')) == '0':
+            if UPPERLAYERINDICATIONSWITCH == '0':
                 dataFrame.loc[idx, 'DECISION'] = 'ALREADY-DISABLED'
             else:
                 dataFrame.loc[idx, 'DECISION'] = 'DISABLED-BY-DEV'
@@ -415,7 +430,7 @@ def getStatesAccordingToPM(dataFrame):
             stateTable['KPI_DATA_IS_NOT_ENOUGH'] = stateTable['KPI_DATA_IS_NOT_ENOUGH'] + 1
 
             # ADDED AT 07-OCT-2022
-            if str(dataFrame.loc[idx, 'paramSet'].get('UPPERLAYERINDICATIONSWITCH')) == '0':
+            if UPPERLAYERINDICATIONSWITCH == '0':
                 dataFrame.loc[idx, 'DECISION'] = 'ALREADY-DISABLED'
             else:
                 dataFrame.loc[idx, 'DECISION'] = 'DISABLED-BY-DEV'
@@ -433,7 +448,7 @@ def getStatesAccordingToPM(dataFrame):
             dataFrame.loc[idx, 'PM_STATE'] = "GOOD_STATE"
             stateTable['GOOD_STATE'] = stateTable['GOOD_STATE'] + 1
 
-            if str(dataFrame.loc[idx, 'paramSet'].get('UPPERLAYERINDICATIONSWITCH')) == "1":
+            if UPPERLAYERINDICATIONSWITCH == "1":
                 dataFrame.loc[idx, 'DECISION'] = 'ALREADY-ENABLED'
             else:
                 dataFrame.loc[idx, 'DECISION'] = 'ENABLED-BY-DEV'
@@ -450,7 +465,7 @@ def getStatesAccordingToPM(dataFrame):
             dataFrame.loc[idx, 'PM_STATE'] = "BAD_STATE"
             stateTable['BAD_STATE'] = stateTable['BAD_STATE'] + 1
 
-            if str(dataFrame.loc[idx, 'paramSet'].get('UPPERLAYERINDICATIONSWITCH')) == '0':
+            if UPPERLAYERINDICATIONSWITCH == '0':
                 dataFrame.loc[idx, 'DECISION'] = 'ALREADY-DISABLED'
             else:
                 dataFrame.loc[idx, 'DECISION'] = 'DISABLED-BY-DEV'
@@ -488,7 +503,8 @@ def main():
     post_message = str(post_message).replace("'", "\"")
     response = xpaas.api.kpis.create_kpi(body=json.loads(post_message)).body
 
-    logger.info(f"KPI GENERATION FOR DEV_SGNB_ADD_ATTEMPTS -> {response}")
+    if debugMode:
+        logger.info(f"KPI GENERATION FOR DEV_SGNB_ADD_ATTEMPTS -> {response}")
 
     post_message = {"description": "SgNB addition success ratio",
                     "formulas": [
@@ -511,35 +527,35 @@ def main():
     post_message = str(post_message).replace("'", "\"")
     response = xpaas.api.kpis.create_kpi(body=json.loads(post_message)).body
 
-    logger.info(f"KPI GENERATION FOR DEV_SGNB_ADD_SUCC_RT -> {response}")
+    if debugMode:
+        logger.info(f"KPI GENERATION FOR DEV_SGNB_ADD_SUCC_RT -> {response}")
 
     # PHASE.2 GET NAAS RELATED DATA
     targetCellList = getTargetCells()
-    # generateReport(dataFrame=targetCellList, prefix="targetCellList_v1", limit=20)
 
     cellMoList = getMosFromNaas(moName="CELL", baseMoList=targetCellList)
-    # generateReport(dataFrame=cellMoList, prefix="cellMoList", limit=20)
 
     NsaDcMgmtConfigList = getMosFromNaas(moName="NSADCMGMTCONFIG", baseMoList=cellMoList)
     extractLocalCellIdInfo(NsaDcMgmtConfigList)
-    # generateReport(dataFrame=NsaDcMgmtConfigList, prefix="NsaDcMgmtConfigList", limit=20)
 
     targetCellList = joinTwoListWithSingleAttribute(lst1=targetCellList, lst2=cellMoList, attribute='guid')
     del cellMoList
-    # generateReport(dataFrame=targetCellList, prefix="targetCellList_v2", limit=20)
 
     targetCellList = joinTwoListWithMultipleAttribute(lst1=targetCellList, lst2=NsaDcMgmtConfigList, left_on=['LocalCellId', 'parent_uid'], right_on=['childMo_LocalCellId', 'childMo_parent_uid'])
     del NsaDcMgmtConfigList
-    # generateReport(dataFrame=targetCellList, prefix="targetCellList_v3", limit=20)
 
     kpiDataList = getTargetPmData(targetCellList)
     targetCellList = joinTwoListWithSingleAttribute(lst1=targetCellList, lst2=kpiDataList, attribute='abstractId')
-    # generateReport(dataFrame=targetCellList, prefix="targetCellList_v4", limit=20)
-
     del kpiDataList
     getStatesAccordingToPM(targetCellList)
 
-    generateReport(dataFrame=targetCellList, prefix="targetCellList_v4", limit=-1)
+    if not debugMode:
+        filtered_values = np.where((targetCellList['DECISION'] == 'DISABLED-BY-DEV') | (targetCellList['DECISION'] == 'ENABLED-BY-DEV'))
+        targetCellList = targetCellList.loc[filtered_values]
+
+    if len(targetCellList):
+        generateReport(dataFrame=targetCellList, prefix="targetCellList" if debugMode else "actionCellList", limit=4000)
+
     logger.info(actionTable)
     logger.info(stateTable)
 
@@ -554,8 +570,7 @@ def main():
         }
 
         logger.info(f"context.get('TRACKING_ID') -> {context.get('TRACKING_ID')}")
-        work_order_res = pgw.api.workorders.send_workorder(body=work_order)
-        # logger.info(work_order_res)
+        _ = pgw.api.workorders.send_workorder(body=work_order)
 
     else:
         logger.info("No cells meeting criteria for optimization")

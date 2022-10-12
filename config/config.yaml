@@ -33,7 +33,7 @@ application:
       description: Backlog Duration XPaaS Request
       defaultValue: "24h"
       type: string
-      group: General Settings   
+      group: General Settings
     - name: MIN_REQ_ATTEMPT_THRESHOLD
       displayName: Minimum Required SgNB Addition Attempt
       description: Minimum Required SgNB Addition Attempt
@@ -45,4 +45,4 @@ application:
       description: Minimum Required SgNB Addition Success Ratio
       defaultValue: 99
       type: number
-      group: General Settings  
+      group: General Settings

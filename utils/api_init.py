@@ -12,12 +12,11 @@ PGW_URL = 'http://10.72.8.78:9093/pgw'
 AUTH_URL = 'https://am.chime-dev.cellwize.com/gateway/chime/oauth/token'
 
 # Configure Client_Id and Client_Secret to enable authentication
-CLIENT_ID = "SZc5nxWR2HNT3zL6xr8xIn7S1bQ"
-CLIENT_SECRET = "ChXh2d1AvLqYDfcQopBRFq72D1k"
+CLIENT_ID = None
+CLIENT_SECRET = None
 
 HEADERS = {}
 
-'''
 # CHIME uses Oauth2 client credentials authentication flow
 if CLIENT_ID is not None and CLIENT_SECRET is not None:
     client = BackendApplicationClient(client_id=CLIENT_ID)
@@ -27,7 +26,6 @@ if CLIENT_ID is not None and CLIENT_SECRET is not None:
 
     # init API client headers with access_token
     HEADERS = {'Authorization': 'Bearer ' + token.get('access_token')}
-'''
 
 # Init  clients
 naas = NaaSApi(api_root_url=NAAS_URL, timeout=60, headers=HEADERS)

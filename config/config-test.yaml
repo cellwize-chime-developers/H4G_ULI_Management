@@ -1,2 +1,8 @@
 # Configure parameter values for development time. These will be overriden at runtime with the user provided data
-NAAS_CLUSTER: TEST_CLUSTER
+NAAS_CLUSTER: "N4G_ULI_MNG_CLUSTER1"
+PROVISION_MODE: "OFFLINE_SIM"
+BACKLOG_DURATION: "72h"
+BATCH_SIZE: 500
+MIN_REQ_SR_THRESHOLD: 90
+MIN_REQ_ATTEMPT_THRESHOLD: 100
+ACTION_LIMIT: -1

@@ -1,12 +1,48 @@
 application:
   meta:
-    name: chime-python-template
-    description: This is a prototype chime application
-    author:
+    name: H4G_ULI_Management
+    description: H4G ULI Management
+    author: Omer Narmanlioglu
   schema:
     - name: NAAS_CLUSTER
       displayName: NaaS Cluster
       description: Name of NaaS cluster for this application.
       defaultValue: ""
       type: string
+      group: General Settings
+    - name: PROVISION_MODE
+      displayName: Provision Mode (OFFLINE_SIM, ONLINE_SIM, OPERATIONAL)
+      description: Provision Mode (OFFLINE_SIM, ONLINE_SIM, OPERATIONAL)
+      defaultValue: ""
+      type: string
+      group: General Settings
+    - name: ACTION_LIMIT
+      displayName: Maximum Allowed Action Count per Task
+      description: Maximum Allowed Action Count per Task
+      defaultValue: 10
+      type: number
+      group: General Settings
+    - name: BATCH_SIZE
+      displayName: Batch Size For XPaaS Request
+      description: Batch Size For XPaaS Request
+      defaultValue: 500
+      type: number
+      group: General Settings
+    - name: BACKLOG_DURATION
+      displayName: Backlog Duration For XPaaS Request
+      description: Backlog Duration XPaaS Request
+      defaultValue: "24h"
+      type: string
+      group: General Settings
+    - name: MIN_REQ_ATTEMPT_THRESHOLD
+      displayName: Minimum Required SgNB Addition Attempt
+      description: Minimum Required SgNB Addition Attempt
+      defaultValue: 100
+      type: number
+      group: General Settings
+    - name: MIN_REQ_SR_THRESHOLD
+      displayName: Minimum Required SgNB Addition Success Ratio
+      description: Minimum Required SgNB Addition Success Ratio
+      defaultValue: 99
+      type: number
       group: General Settings

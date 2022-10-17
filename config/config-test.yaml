@@ -1,6 +1,12 @@
 # Configure parameter values for development time. These will be overriden at runtime with the user provided data
-DEBUG_MODE: "F"
-NAAS_CLUSTER: "S_P1_M1_ULI"
+DEBUG_MODE: "T"
+NaaS_IP: 'https://naas.chime-prod.gcp.de.pri.o2.com/naas' # 'http://10.72.8.21:9091/naas'
+XPaaS_IP: 'https://xpaas.chime-prod.gcp.de.pri.o2.com/xpaas' # 'http://10.72.8.78:9092/xpaas'
+PGW_IP: 'https://pgw.chime-prod.gcp.de.pri.o2.com/pgw' # 'http://10.72.8.78:9093/pgw'
+Auth_IP: 'https://am.chime-prod.gcp.de.pri.o2.com/gateway/chime/oauth/token'
+CLIENT_ID: 'SZc5nxWR2HNT3zL6xr8xIn7S1bQ'
+CLIENT_SECRET: 'ChXh2d1AvLqYDfcQopBRFq72D1k'
+NAAS_CLUSTER: "S_P1_M1" # "S_P1_M1_ULI"
 PROVISION_MODE: "OFFLINE_SIM"
 BACKLOG_DURATION: "72h"
 BATCH_SIZE: 500

@@ -10,6 +10,42 @@ application:
       defaultValue: "F"
       type: string
       group: General Settings
+    - name: NaaS_IP
+      displayName: NaaS URL
+      description: NaaS URL
+      defaultValue: ""
+      type: string
+      group: General Settings
+    - name: XPaaS_IP
+      displayName: XPaaS URL
+      description: XPaaS URL
+      defaultValue: ""
+      type: string
+      group: General Settings
+    - name: PGW_IP
+      displayName: PGW URL
+      description: PGW URL
+      defaultValue: ""
+      type: string
+      group: General Settings
+    - name: Auth_IP
+      displayName: Auth URL
+      description: Auth URL
+      defaultValue: ""
+      type: string
+      group: General Settings
+    - name: CLIENT_ID
+      displayName: Client ID
+      description: Client ID
+      defaultValue: ""
+      type: string
+      group: General Settings
+    - name: CLIENT_SECRET
+      displayName: Client SECRET
+      description: Client SECRET
+      defaultValue: ""
+      type: string
+      group: General Settings
     - name: NAAS_CLUSTER
       displayName: NaaS Cluster
       description: Name of NaaS cluster for this application.
@@ -17,15 +53,15 @@ application:
       type: string
       group: General Settings
     - name: PROVISION_MODE
-      displayName: Provision Mode (OFFLINE_SIM, ONLINE_SIM, OPERATIONAL)
-      description: Provision Mode (OFFLINE_SIM, ONLINE_SIM, OPERATIONAL)
-      defaultValue: ""
+      displayName: Provision Mode (OPEN_LOOP, OFFLINE_SIM, ONLINE_SIM, OPERATIONAL)
+      description: Provision Mode (OPEN_LOOP, OFFLINE_SIM, ONLINE_SIM, OPERATIONAL)
+      defaultValue: "OFFLINE_SIM"
       type: string
       group: General Settings
     - name: ACTION_LIMIT
       displayName: Maximum Allowed Action Count per Task
       description: Maximum Allowed Action Count per Task
-      defaultValue: 10
+      defaultValue: -1
       type: number
       group: General Settings
     - name: BATCH_SIZE
@@ -37,7 +73,7 @@ application:
     - name: BACKLOG_DURATION
       displayName: Backlog Duration For XPaaS Request
       description: Backlog Duration XPaaS Request
-      defaultValue: "24h"
+      defaultValue: "72h"
       type: string
       group: General Settings
     - name: MIN_REQ_ATTEMPT_THRESHOLD
@@ -49,6 +85,6 @@ application:
     - name: MIN_REQ_SR_THRESHOLD
       displayName: Minimum Required SgNB Addition Success Ratio
       description: Minimum Required SgNB Addition Success Ratio
-      defaultValue: 99
+      defaultValue: 90
       type: number
       group: General Settings

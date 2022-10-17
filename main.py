@@ -56,7 +56,7 @@ def generateReport(dataFrame, prefix, limit):
         logger.info(f'#{prefix}#{"#".join(eachRow)}')
 
         if rowCounter == limit:
-            logger.info("Report is clipped due to max report size")
+            logger.info("Report is truncated due to max report size")
             break
 
 
@@ -368,8 +368,7 @@ def getTargetPmData(cellList):
         nextPageInfo = getNextPageUrl(page_info=pagination)
 
         if not nextPageInfo['EOF']:
-            if debugMode:
-                logger.info("There is a pagination on XPaaS request. Re-format the size.")
+            logger.info("There is a pagination on XPaaS request. Re-format the size.")
 
     if len(pmList) == 0:
         pmList.append(pmObject(abstractId=None, kpis={}))
@@ -379,6 +378,7 @@ def getTargetPmData(cellList):
 
 stateTable = {'KPI_DATA_IS_NOT_AVILABLE': 0, 'KPI_DATA_IS_NOT_ENOUGH': 0, 'GOOD_STATE': 0, 'BAD_STATE': 0}
 actionTable = {'SET_TO_1': 0, 'SET_TO_0': 0}
+listOfMosWithAction = []
 
 
 def getStatesAccordingToPM(dataFrame):
@@ -407,17 +407,23 @@ def getStatesAccordingToPM(dataFrame):
             # ADDED AT 07-OCT-2022
             if UPPERLAYERINDICATIONSWITCH == '0':
                 dataFrame.loc[idx, 'DECISION'] = 'ALREADY-DISABLED'
+
             else:
                 dataFrame.loc[idx, 'DECISION'] = 'DISABLED-BY-DEV'
                 if action_count < maxNumberOfAction or maxNumberOfAction == -1:
-                    work_items.append({
-                        'type': 'CHANGE_SPECIFIC_PARAMETER',
-                        '_moId': dataFrame.loc[idx, 'childMo_uid'],
-                        'parameterName': 'UPPERLAYERINDICATIONSWITCH',
-                        'value': "0"
-                    })
-                    action_count = action_count + 1
-                    actionTable['SET_TO_0'] = actionTable['SET_TO_0'] + 1
+
+                    if dataFrame.loc[idx, 'childMo_uid'] not in listOfMosWithAction:
+                        listOfMosWithAction.append(dataFrame.loc[idx, 'childMo_uid'])
+                        work_items.append({
+                            'type': 'CHANGE_SPECIFIC_PARAMETER',
+                            '_moId': dataFrame.loc[idx, 'childMo_uid'],
+                            'parameterName': 'UPPERLAYERINDICATIONSWITCH',
+                            'value': "0"
+                        })
+                        action_count = action_count + 1
+                        actionTable['SET_TO_0'] = actionTable['SET_TO_0'] + 1
+                    else:
+                        dataFrame.loc[idx, 'DECISION'] = 'DUPLICATED_MO'
 
         elif DEV_SGNB_ADD_SUCC_RT is None or DEV_SGNB_ADD_ATTEMPTS is None:
             dataFrame.loc[idx, 'PM_STATE'] = "KPI_DATA_IS_NOT_AVILABLE"
@@ -435,14 +441,19 @@ def getStatesAccordingToPM(dataFrame):
             else:
                 dataFrame.loc[idx, 'DECISION'] = 'DISABLED-BY-DEV'
                 if action_count < maxNumberOfAction or maxNumberOfAction == -1:
-                    work_items.append({
-                        'type': 'CHANGE_SPECIFIC_PARAMETER',
-                        '_moId': dataFrame.loc[idx, 'childMo_uid'],
-                        'parameterName': 'UPPERLAYERINDICATIONSWITCH',
-                        'value': "0"
-                    })
-                    action_count = action_count + 1
-                    actionTable['SET_TO_0'] = actionTable['SET_TO_0'] + 1
+
+                    if dataFrame.loc[idx, 'childMo_uid'] not in listOfMosWithAction:
+                        listOfMosWithAction.append(dataFrame.loc[idx, 'childMo_uid'])
+                        work_items.append({
+                            'type': 'CHANGE_SPECIFIC_PARAMETER',
+                            '_moId': dataFrame.loc[idx, 'childMo_uid'],
+                            'parameterName': 'UPPERLAYERINDICATIONSWITCH',
+                            'value': "0"
+                        })
+                        action_count = action_count + 1
+                        actionTable['SET_TO_0'] = actionTable['SET_TO_0'] + 1
+                    else:
+                        dataFrame.loc[idx, 'DECISION'] = 'DUPLICATED_MO'
 
         elif DEV_SGNB_ADD_SUCC_RT > srThreshold:
             dataFrame.loc[idx, 'PM_STATE'] = "GOOD_STATE"
@@ -453,14 +464,19 @@ def getStatesAccordingToPM(dataFrame):
             else:
                 dataFrame.loc[idx, 'DECISION'] = 'ENABLED-BY-DEV'
                 if action_count < maxNumberOfAction or maxNumberOfAction == -1:
-                    actionTable['SET_TO_1'] = actionTable['SET_TO_1'] + 1
-                    work_items.append({
-                        'type': 'CHANGE_SPECIFIC_PARAMETER',
-                        '_moId': dataFrame.loc[idx, 'childMo_uid'],
-                        'parameterName': 'UPPERLAYERINDICATIONSWITCH',
-                        'value': "1"
-                    })
-                    action_count = action_count + 1
+
+                    if dataFrame.loc[idx, 'childMo_uid'] not in listOfMosWithAction:
+                        listOfMosWithAction.append(dataFrame.loc[idx, 'childMo_uid'])
+                        work_items.append({
+                            'type': 'CHANGE_SPECIFIC_PARAMETER',
+                            '_moId': dataFrame.loc[idx, 'childMo_uid'],
+                            'parameterName': 'UPPERLAYERINDICATIONSWITCH',
+                            'value': "1"
+                        })
+                        action_count = action_count + 1
+                        actionTable['SET_TO_1'] = actionTable['SET_TO_1'] + 1
+                    else:
+                        dataFrame.loc[idx, 'DECISION'] = 'DUPLICATED_MO'
         else:
             dataFrame.loc[idx, 'PM_STATE'] = "BAD_STATE"
             stateTable['BAD_STATE'] = stateTable['BAD_STATE'] + 1
@@ -470,14 +486,19 @@ def getStatesAccordingToPM(dataFrame):
             else:
                 dataFrame.loc[idx, 'DECISION'] = 'DISABLED-BY-DEV'
                 if action_count < maxNumberOfAction or maxNumberOfAction == -1:
-                    work_items.append({
-                        'type': 'CHANGE_SPECIFIC_PARAMETER',
-                        '_moId': dataFrame.loc[idx, 'childMo_uid'],
-                        'parameterName': 'UPPERLAYERINDICATIONSWITCH',
-                        'value': "0"
-                    })
-                    action_count = action_count + 1
-                    actionTable['SET_TO_0'] = actionTable['SET_TO_0'] + 1
+
+                    if dataFrame.loc[idx, 'childMo_uid'] not in listOfMosWithAction:
+                        listOfMosWithAction.append(dataFrame.loc[idx, 'childMo_uid'])
+                        work_items.append({
+                            'type': 'CHANGE_SPECIFIC_PARAMETER',
+                            '_moId': dataFrame.loc[idx, 'childMo_uid'],
+                            'parameterName': 'UPPERLAYERINDICATIONSWITCH',
+                            'value': "0"
+                        })
+                        action_count = action_count + 1
+                        actionTable['SET_TO_0'] = actionTable['SET_TO_0'] + 1
+                    else:
+                        dataFrame.loc[idx, 'DECISION'] = 'DUPLICATED_MO'
 
 
 def main():
@@ -515,7 +536,7 @@ def main():
                         },
                         {
                             "draft": "false",
-                            "formula": "100*#SGNB_ADD_COMPL_SUCC/#SGNB_ADD_PREP_ATT",
+                            "formula": "100*#SGNB_ADD_PREP_SUCC/#SGNB_ADD_PREP_ATT",
                             "vendor": "NOKIA"
                         }
                     ],
@@ -560,20 +581,25 @@ def main():
     logger.info(stateTable)
 
     if len(work_items) > 0:
-        work_order = {
-            'description': "UPDATING NSADCMGMTCONFIG.UPPERLAYERINDICATIONSWITCH",
-            'mode': context.get('PROVISION_MODE'),
-            'method': 'NON_TRANSACTION',
-            'priority': '1',
-            'trackingId': context.get('TRACKING_ID'),
-            'workItems': work_items
-        }
+        if context.get('PROVISION_MODE') in ["OFFLINE_SIM", "ONLINE_SIM", "OPERATIONAL"]:
 
-        logger.info(f"context.get('TRACKING_ID') -> {context.get('TRACKING_ID')}")
-        _ = pgw.api.workorders.send_workorder(body=work_order)
+            work_order = {
+                'description': "UPDATING NSADCMGMTCONFIG.UPPERLAYERINDICATIONSWITCH",
+                'mode': context.get('PROVISION_MODE'),
+                'method': 'NON_TRANSACTION',
+                'priority': '1',
+                'trackingId': context.get('TRACKING_ID'),
+                'workItems': work_items
+            }
 
+            logger.info(f"context.get('TRACKING_ID') -> {context.get('TRACKING_ID')}")
+            _ = pgw.api.workorders.send_workorder(body=work_order)
+
+        else:
+            logger.info(f"No PGW due to {context.get('PROVISION_MODE')}")
     else:
         logger.info("No cells meeting criteria for optimization")
+
 
 
 if __name__ == '__main__':

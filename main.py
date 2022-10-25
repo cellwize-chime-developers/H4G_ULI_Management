@@ -66,9 +66,9 @@ def generateReport(dataFrame, prefix):
     logVar.printLogReport(f'#{prefix}#{"#".join(dataFrame.keys().tolist())}')
 
     currentLogRow = logVar.logCount
-    remaining_row_count = max(logLimit - 100 - currentLogRow, 1)
+    remaining_row_count = max(logLimit - 500 - currentLogRow, 1)
     total_cell_count = len(dataFrame.values.tolist())
-    cell_per_line = math.floor(total_cell_count / remaining_row_count)
+    cell_per_line = math.ceil(total_cell_count / remaining_row_count)
 
     logVar.printLog(f"currentLogRow -> {currentLogRow}")
     logVar.printLog(f"remaining_row_count -> {remaining_row_count}")
@@ -605,6 +605,9 @@ def main():
     logVar.printLogSummary(f"actionTable -> {actionTable}")
     logVar.printLogSummary(f"stateTable -> {stateTable}")
 
+    if len(targetCellList):
+        generateReport(dataFrame=targetCellList, prefix="targetCellList")
+
     if len(work_items) > 0:
         if context.get('PROVISION_MODE') in ["OFFLINE_SIM", "ONLINE_SIM", "OPERATIONAL"]:
 
@@ -625,8 +628,7 @@ def main():
     else:
         logVar.printLog("No cells meeting criteria for optimization")
 
-    if len(targetCellList):
-        generateReport(dataFrame=targetCellList, prefix="targetCellList")
+
 
 
 if __name__ == '__main__':

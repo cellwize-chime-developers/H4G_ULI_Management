@@ -4,34 +4,34 @@ application:
     description: H4G ULI Management
     author: Omer Narmanlioglu
   schema:
-    - name: DEBUG_MODE
-      displayName: Debug Mode (F or T)
-      description: Debug Mode (F or T).
-      defaultValue: "F"
-      type: string
+    - name: LOG_LIMIT
+      displayName: LOG_LIMIT
+      description: LOG_LIMIT.
+      defaultValue: 5000
+      type: number
       group: General Settings
     - name: NaaS_IP
       displayName: NaaS URL
       description: NaaS URL
-      defaultValue: ""
+      defaultValue: "https://naas.chime-prod.gcp.de.pri.o2.com/naas"
       type: string
       group: General Settings
     - name: XPaaS_IP
       displayName: XPaaS URL
       description: XPaaS URL
-      defaultValue: ""
+      defaultValue: "https://xpaas.chime-prod.gcp.de.pri.o2.com/xpaas"
       type: string
       group: General Settings
     - name: PGW_IP
       displayName: PGW URL
       description: PGW URL
-      defaultValue: ""
+      defaultValue: "https://pgw.chime-prod.gcp.de.pri.o2.com/pgw"
       type: string
       group: General Settings
     - name: Auth_IP
       displayName: Auth URL
       description: Auth URL
-      defaultValue: ""
+      defaultValue: "https://am.chime-prod.gcp.de.pri.o2.com/gateway/chime/oauth/token"
       type: string
       group: General Settings
     - name: CLIENT_ID
@@ -49,7 +49,7 @@ application:
     - name: NAAS_CLUSTER
       displayName: NaaS Cluster
       description: Name of NaaS cluster for this application.
-      defaultValue: ""
+      defaultValue: "S_P1_M1"
       type: string
       group: General Settings
     - name: PROVISION_MODE

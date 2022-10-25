@@ -9,8 +9,27 @@ import time
 import math
 import json
 
-logger.info(f"pandas version is " + pd.__version__)
-logger.info(f"numpy version is " + np.__version__)
+
+class loggerSpClass:
+    logCount = 0
+
+    def printLog(self, ins_str):
+        logger.info(f"[SYSTEM-INFO] {ins_str}")
+        self.logCount += 1
+
+    def printLogReport(self, ins_str):
+        logger.info(f"[OUTPUT-REPORT] {ins_str}")
+        self.logCount += 1
+
+    def printLogSummary(self, ins_str):
+        logger.info(f"[SUMMARY-REPORT] {ins_str}")
+        self.logCount += 1
+
+
+logVar = loggerSpClass()
+
+logVar.printLog(f"pandas version is " + pd.__version__)
+logVar.printLog(f"numpy version is " + np.__version__)
 
 # STATIC PARAMETER DEFINITIONS
 kpiList = ["DEV_SGNB_ADD_SUCC_RT", "DEV_SGNB_ADD_ATTEMPTS"]
@@ -23,7 +42,7 @@ moParameters = {'NSADCMGMTCONFIG': [{"place": "attributes",
                                      }
                                     ]}
 
-debugMode = True if context.get('DEBUG_MODE') == "T" else False
+logLimit = int(context.get('LOG_LIMIT'))
 batchSize = int(context.get('BATCH_SIZE'))
 backLogDuration = context.get('BACKLOG_DURATION')
 targetCluster = context.get('NAAS_CLUSTER')
@@ -32,32 +51,50 @@ attThreshold = int(context.get('MIN_REQ_ATTEMPT_THRESHOLD'))
 maxNumberOfAction = int(context.get('ACTION_LIMIT'))
 work_items = []
 
-logger.info(f"UI VARIABLES: DEBUG_MODE IS {debugMode}")
-logger.info(f"UI VARIABLES: NAAS_CLUSTER IS {targetCluster}")
-logger.info(f"UI VARIABLES: PROVISION_MODE IS {context.get('PROVISION_MODE')}")
-logger.info(f"UI VARIABLES: BACKLOG_DURATION IS {backLogDuration}")
-logger.info(f"UI VARIABLES: BATCH_SIZE IS {batchSize}")
-logger.info(f"UI VARIABLES: MIN_REQ_SR_THRESHOLD IS {srThreshold}")
-logger.info(f"UI VARIABLES: MIN_REQ_ATTEMPT_THRESHOLD IS {attThreshold}")
-logger.info(f"UI VARIABLES: ACTION_LIMIT IS {maxNumberOfAction}")
+logVar.printLog(f"UI VARIABLES: LOG_LIMIT IS {logLimit}")
+logVar.printLog(f"UI VARIABLES: NAAS_CLUSTER IS {targetCluster}")
+logVar.printLog(f"UI VARIABLES: PROVISION_MODE IS {context.get('PROVISION_MODE')}")
+logVar.printLog(f"UI VARIABLES: BACKLOG_DURATION IS {backLogDuration}")
+logVar.printLog(f"UI VARIABLES: BATCH_SIZE IS {batchSize}")
+logVar.printLog(f"UI VARIABLES: MIN_REQ_SR_THRESHOLD IS {srThreshold}")
+logVar.printLog(f"UI VARIABLES: MIN_REQ_ATTEMPT_THRESHOLD IS {attThreshold}")
+logVar.printLog(f"UI VARIABLES: ACTION_LIMIT IS {maxNumberOfAction}")
 
 
 # COMMON FUNCTIONS
-def generateReport(dataFrame, prefix, limit):
-    logger.info(f'#{prefix}#{"#".join(dataFrame.keys().tolist())}')
+def generateReport(dataFrame, prefix):
+    logVar.printLogReport(f'#{prefix}#{"#".join(dataFrame.keys().tolist())}')
+
+    currentLogRow = logVar.logCount
+    remaining_row_count = max(logLimit - 100 - currentLogRow, 1)
+    total_cell_count = len(dataFrame.values.tolist())
+    cell_per_line = math.floor(total_cell_count / remaining_row_count)
+
+    logVar.printLog(f"currentLogRow -> {currentLogRow}")
+    logVar.printLog(f"remaining_row_count -> {remaining_row_count}")
+    logVar.printLog(f"total_cell_count -> {total_cell_count}")
+    logVar.printLog(f"cell_per_line -> {cell_per_line}")
 
     rowCounter = 0
+
+    str_line = []
+    cell_count_in_line = 0
+
     for eachRow in dataFrame.values.tolist():
+
         rowCounter = rowCounter + 1
         for ii in range(len(eachRow)):
             if str(eachRow[ii].__class__.__name__) != "str":
                 eachRow[ii] = str(eachRow[ii])
 
-        logger.info(f'#{prefix}#{"#".join(eachRow)}')
+        cell_count_in_line = cell_count_in_line + 1
+        str_line.append("#".join(eachRow))
 
-        if rowCounter == limit:
-            logger.info("Report is truncated due to max report size")
-            break
+        if cell_count_in_line == cell_per_line or rowCounter == len(dataFrame.values.tolist()):
+
+            logVar.printLogReport(f'#{prefix}#{"####".join(str_line)}')
+            cell_count_in_line = 0
+            str_line = []
 
 
 def elapsedTimeMeasure(method):
@@ -65,15 +102,14 @@ def elapsedTimeMeasure(method):
         ts = time.time()
         result = method(*args, **kw)
         te = time.time()
-        if debugMode:
-            logger.info(f"Elapsed time for {method.__name__} is {round(te - ts, 2)} sec")
+        logVar.printLog(f"Elapsed time for {method.__name__} is {round(te - ts, 2)} sec")
         return result
 
     return timed
 
 
 def convertToPdFrame(lst):
-    logger.info(f"Total number of pandas object is {len(lst)}")
+    logVar.printLog(f"Total number of pandas object is {len(lst)}")
     lst = list(set(lst))
     lst = pd.DataFrame([t.__dict__ for t in lst])
     return lst
@@ -90,9 +126,8 @@ def joinTwoListWithMultipleAttribute(lst1, lst2, left_on, right_on):
 
 
 def printResponseDetails(page_info):
-    if debugMode:
-        logger.info(f"Total element size is {page_info['numberOfElements']}")
-        logger.info(f"Total required request count is {page_info['numberOfPages']}")
+    logVar.printLog(f"Total element size is {page_info['numberOfElements']}")
+    logVar.printLog(f"Total required request count is {page_info['numberOfPages']}")
 
 
 def getNextPageUrl(page_info):
@@ -152,14 +187,14 @@ def populateChildMoList(lst, jsonFmt, params):
     try:
         jsonFmt['elements']
     except:
-        logger.info(f"populateChildMoList.elements is missing")
+        logVar.printLog(f"populateChildMoList.elements is missing")
         return None
 
     for eachMoObj in jsonFmt['elements']:
         try:
             eachMo = eachMoObj['managedObject']
         except:
-            logger.info(f"populateChildMoList.managedObject is missing")
+            logVar.printLog(f"populateChildMoList.managedObject is missing")
             continue
         dicts = {}
         for eachParam in params:
@@ -183,8 +218,7 @@ def getNaasMoFromURL(url):
         each_str = each.split("=")
         paramSet[each_str[0]] = each_str[1]
 
-    if debugMode:
-        logger.info(paramSet)
+    logVar.printLog(paramSet)
     response = naas.api.mos.find_mos(params=paramSet).body
     return response
 
@@ -252,8 +286,7 @@ def getNaasFromURL(url):
         each_str = each.split("=")
         paramSet[each_str[0]] = each_str[1]
 
-    if debugMode:
-        logger.info(paramSet)
+    logVar.printLog(paramSet)
     response = naas.api.clusters.get_cluster_cells(targetCluster, params=paramSet).body
     return response
 
@@ -305,16 +338,15 @@ def populatePmList(lst, jsonFmt):
     try:
         jsonFmt['elements']
     except:
-        logger.info(f"populatePmList.elements is missing")
+        logVar.printLog(f"populatePmList.elements is missing")
         return None
 
     for eachCellObj in jsonFmt['elements']:
         try:
             dataPoint = eachCellObj['data_points']
             if len(dataPoint) != 1:
-                logger.info(f"populatePmList.dataPoint.size is {len(dataPoint)}")
-                if debugMode:
-                    logger.info(dataPoint)
+                logVar.printLog(f"populatePmList.dataPoint.size is {len(dataPoint)}")
+                logVar.printLog(dataPoint)
 
             dataPoint_ = dataPoint[0]
             try:
@@ -329,9 +361,9 @@ def populatePmList(lst, jsonFmt):
                 lst.append(pmObject(abstractId=eachCellObj['_cellId'],
                                     kpis=dicts))
             except:
-                logger.info(f"populatePmList.values is missing")
+                logVar.printLog(f"populatePmList.values is missing")
         except:
-            logger.info(f"populatePmList.data_points is missing")
+            logVar.printLog(f"populatePmList.data_points is missing")
 
 
 @elapsedTimeMeasure
@@ -341,11 +373,10 @@ def getTargetPmData(cellList):
     pmList = []
 
     batchCount = math.ceil(len(cellList) / batchSize)
-    logger.info(f"Required batch count is {batchCount} to get {len(cellList)} cell data")
+    logVar.printLog(f"Required batch count is {batchCount} to get {len(cellList)} cell data")
 
     for ii in range(batchCount):
-        if debugMode:
-            logger.info(f"PM Set Batch {ii + 1} is procedeed")
+        logVar.printLog(f"PM Set Batch {ii + 1} is procedeed")
 
         minIdx = int(batchSize * ii)
         maxIdx = min(int(batchSize * (ii + 1)), len(cellList))
@@ -368,7 +399,7 @@ def getTargetPmData(cellList):
         nextPageInfo = getNextPageUrl(page_info=pagination)
 
         if not nextPageInfo['EOF']:
-            logger.info("There is a pagination on XPaaS request. Re-format the size.")
+            logVar.printLog("There is a pagination on XPaaS request. Re-format the size.")
 
     if len(pmList) == 0:
         pmList.append(pmObject(abstractId=None, kpis={}))
@@ -524,8 +555,7 @@ def main():
     post_message = str(post_message).replace("'", "\"")
     response = xpaas.api.kpis.create_kpi(body=json.loads(post_message)).body
 
-    if debugMode:
-        logger.info(f"KPI GENERATION FOR DEV_SGNB_ADD_ATTEMPTS -> {response}")
+    logVar.printLog(f"KPI GENERATION FOR DEV_SGNB_ADD_ATTEMPTS -> {response}")
 
     post_message = {"description": "SgNB addition success ratio",
                     "formulas": [
@@ -548,8 +578,7 @@ def main():
     post_message = str(post_message).replace("'", "\"")
     response = xpaas.api.kpis.create_kpi(body=json.loads(post_message)).body
 
-    if debugMode:
-        logger.info(f"KPI GENERATION FOR DEV_SGNB_ADD_SUCC_RT -> {response}")
+    logVar.printLog(f"KPI GENERATION FOR DEV_SGNB_ADD_SUCC_RT -> {response}")
 
     # PHASE.2 GET NAAS RELATED DATA
     targetCellList = getTargetCells()
@@ -570,15 +599,11 @@ def main():
     del kpiDataList
     getStatesAccordingToPM(targetCellList)
 
-    if not debugMode:
-        filtered_values = np.where((targetCellList['DECISION'] == 'DISABLED-BY-DEV') | (targetCellList['DECISION'] == 'ENABLED-BY-DEV'))
-        targetCellList = targetCellList.loc[filtered_values]
+    # filtered_values = np.where((targetCellList['DECISION'] == 'DISABLED-BY-DEV') | (targetCellList['DECISION'] == 'ENABLED-BY-DEV'))
+    # targetCellList = targetCellList.loc[filtered_values]
 
-    if len(targetCellList):
-        generateReport(dataFrame=targetCellList, prefix="targetCellList" if debugMode else "actionCellList", limit=4000)
-
-    logger.info(actionTable)
-    logger.info(stateTable)
+    logVar.printLogSummary(f"actionTable -> {actionTable}")
+    logVar.printLogSummary(f"stateTable -> {stateTable}")
 
     if len(work_items) > 0:
         if context.get('PROVISION_MODE') in ["OFFLINE_SIM", "ONLINE_SIM", "OPERATIONAL"]:
@@ -592,14 +617,16 @@ def main():
                 'workItems': work_items
             }
 
-            logger.info(f"context.get('TRACKING_ID') -> {context.get('TRACKING_ID')}")
+            logVar.printLog(f"context.get('TRACKING_ID') -> {context.get('TRACKING_ID')}")
             _ = pgw.api.workorders.send_workorder(body=work_order)
 
         else:
-            logger.info(f"No PGW due to {context.get('PROVISION_MODE')}")
+            logVar.printLog(f"No PGW due to {context.get('PROVISION_MODE')}")
     else:
-        logger.info("No cells meeting criteria for optimization")
+        logVar.printLog("No cells meeting criteria for optimization")
 
+    if len(targetCellList):
+        generateReport(dataFrame=targetCellList, prefix="targetCellList")
 
 
 if __name__ == '__main__':

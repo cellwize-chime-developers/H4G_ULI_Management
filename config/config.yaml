@@ -76,10 +76,16 @@ application:
       defaultValue: "72h"
       type: string
       group: General Settings
-    - name: MIN_REQ_ATTEMPT_THRESHOLD
-      displayName: Minimum Required SgNB Addition Attempt
-      description: Minimum Required SgNB Addition Attempt
+    - name: MIN_REQ_ATTEMPT_THRESHOLD_FOR_ULI_2
+      displayName: Minimum Required SgNB Addition Attempt For ULI of 2
+      description: Minimum Required SgNB Addition Attempt For ULI of 2
       defaultValue: 100
+      type: number
+      group: General Settings
+    - name: MIN_REQ_ATTEMPT_THRESHOLD_FOR_ULI_NOT_2
+      displayName: Minimum Required SgNB Addition Attempt For ULI of Not 2
+      description: Minimum Required SgNB Addition Attempt For ULI of Not 2
+      defaultValue: 50
       type: number
       group: General Settings
     - name: MIN_REQ_SR_THRESHOLD

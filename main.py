@@ -47,7 +47,8 @@ batchSize = int(context.get('BATCH_SIZE'))
 backLogDuration = context.get('BACKLOG_DURATION')
 targetCluster = context.get('NAAS_CLUSTER')
 srThreshold = int(context.get('MIN_REQ_SR_THRESHOLD'))
-attThreshold = int(context.get('MIN_REQ_ATTEMPT_THRESHOLD'))
+attThreshold = int(context.get('MIN_REQ_ATTEMPT_THRESHOLD_FOR_ULI_2'))
+attThreshold2 = int(context.get('MIN_REQ_ATTEMPT_THRESHOLD_FOR_ULI_NOT_2'))
 maxNumberOfAction = int(context.get('ACTION_LIMIT'))
 work_items = []
 
@@ -57,7 +58,8 @@ logVar.printLog(f"UI VARIABLES: PROVISION_MODE IS {context.get('PROVISION_MODE')
 logVar.printLog(f"UI VARIABLES: BACKLOG_DURATION IS {backLogDuration}")
 logVar.printLog(f"UI VARIABLES: BATCH_SIZE IS {batchSize}")
 logVar.printLog(f"UI VARIABLES: MIN_REQ_SR_THRESHOLD IS {srThreshold}")
-logVar.printLog(f"UI VARIABLES: MIN_REQ_ATTEMPT_THRESHOLD IS {attThreshold}")
+logVar.printLog(f"UI VARIABLES: MIN_REQ_ATTEMPT_THRESHOLD_FOR_ULI_2 IS {attThreshold}")
+logVar.printLog(f"UI VARIABLES: MIN_REQ_ATTEMPT_THRESHOLD_FOR_ULI_NOT_2 IS {attThreshold2}")
 logVar.printLog(f"UI VARIABLES: ACTION_LIMIT IS {maxNumberOfAction}")
 
 
@@ -407,7 +409,7 @@ def getTargetPmData(cellList):
     return convertToPdFrame(lst=pmList)
 
 
-stateTable = {'KPI_DATA_IS_NOT_AVILABLE': 0, 'KPI_DATA_IS_NOT_ENOUGH': 0, 'GOOD_STATE': 0, 'BAD_STATE': 0}
+stateTable = {'KPI_DATA_IS_NOT_AVILABLE': 0, 'KPI_DATA_IS_NOT_ENOUGH': 0, 'GOOD_STATE': 0, 'BAD_STATE': 0, 'DO_NOTHING': 0}
 actionTable = {'SET_TO_1': 0, 'SET_TO_0': 0}
 listOfMosWithAction = []
 
@@ -430,6 +432,8 @@ def getStatesAccordingToPM(dataFrame):
             dataFrame.loc[idx, 'DECISION'] = "MISSING_CM"
             continue
 
+    
+        # IF DEV_SGNB_ADD_ATTEMPTS == 0
         if (int(DEV_SGNB_ADD_ATTEMPTS) if DEV_SGNB_ADD_ATTEMPTS is not None else None) == 0:
             dataFrame.loc[idx, 'PM_STATE'] = "KPI_DATA_IS_NOT_ENOUGH"
             # dataFrame.loc[idx, 'DECISION'] = 'NONE' -- CHANGED AT 07-OCT-2022
@@ -456,12 +460,15 @@ def getStatesAccordingToPM(dataFrame):
                     else:
                         dataFrame.loc[idx, 'DECISION'] = 'DUPLICATED_MO'
 
+        # IF DEV_SGNB_ADD_ATTEMPTS OR DEV_SGNB_ADD_SUCC_RT IS NULL
         elif DEV_SGNB_ADD_SUCC_RT is None or DEV_SGNB_ADD_ATTEMPTS is None:
             dataFrame.loc[idx, 'PM_STATE'] = "KPI_DATA_IS_NOT_AVILABLE"
             dataFrame.loc[idx, 'DECISION'] = 'NONE'
             stateTable['KPI_DATA_IS_NOT_AVILABLE'] = stateTable['KPI_DATA_IS_NOT_AVILABLE'] + 1
 
-        elif DEV_SGNB_ADD_ATTEMPTS < attThreshold:
+        # IF DEV_SGNB_ADD_ATTEMPTS < THRESHOLD_1 FOR UPPERLAYERINDICATIONSWITCH=2
+        # IF DEV_SGNB_ADD_ATTEMPTS < THRESHOLD_2 FOR UPPERLAYERINDICATIONSWITCH!=2
+        elif (DEV_SGNB_ADD_ATTEMPTS < attThreshold and UPPERLAYERINDICATIONSWITCH == '2') or (DEV_SGNB_ADD_ATTEMPTS < attThreshold2 and UPPERLAYERINDICATIONSWITCH != '2'):
             dataFrame.loc[idx, 'PM_STATE'] = "KPI_DATA_IS_NOT_ENOUGH"
             # dataFrame.loc[idx, 'DECISION'] = 'NONE' -- CHANGED AT 07-OCT-2022
             stateTable['KPI_DATA_IS_NOT_ENOUGH'] = stateTable['KPI_DATA_IS_NOT_ENOUGH'] + 1
@@ -486,7 +493,8 @@ def getStatesAccordingToPM(dataFrame):
                     else:
                         dataFrame.loc[idx, 'DECISION'] = 'DUPLICATED_MO'
 
-        elif DEV_SGNB_ADD_SUCC_RT > srThreshold:
+        # IF DEV_SGNB_ADD_ATTEMPTS >= THRESHOLD_1 AND DEV_SGNB_ADD_SUCC_RT > SR_THRESHOLD
+        elif DEV_SGNB_ADD_ATTEMPTS >= attThreshold and DEV_SGNB_ADD_SUCC_RT >= srThreshold:
             dataFrame.loc[idx, 'PM_STATE'] = "GOOD_STATE"
             stateTable['GOOD_STATE'] = stateTable['GOOD_STATE'] + 1
 
@@ -508,7 +516,9 @@ def getStatesAccordingToPM(dataFrame):
                         actionTable['SET_TO_1'] = actionTable['SET_TO_1'] + 1
                     else:
                         dataFrame.loc[idx, 'DECISION'] = 'DUPLICATED_MO'
-        else:
+        
+        # IF DEV_SGNB_ADD_ATTEMPTS >= THRESHOLD_1 AND DEV_SGNB_ADD_SUCC_RT <= SR_THRESHOLD
+        elif DEV_SGNB_ADD_ATTEMPTS >= attThreshold and DEV_SGNB_ADD_SUCC_RT < srThreshold:
             dataFrame.loc[idx, 'PM_STATE'] = "BAD_STATE"
             stateTable['BAD_STATE'] = stateTable['BAD_STATE'] + 1
 
@@ -530,6 +540,12 @@ def getStatesAccordingToPM(dataFrame):
                         actionTable['SET_TO_0'] = actionTable['SET_TO_0'] + 1
                     else:
                         dataFrame.loc[idx, 'DECISION'] = 'DUPLICATED_MO'
+        
+        else:
+            dataFrame.loc[idx, 'PM_STATE'] = "DO_NOTHING"
+            stateTable['DO_NOTHING'] = stateTable['DO_NOTHING'] + 1
+            dataFrame.loc[idx, 'DECISION'] = 'NONE'
+
 
 
 def main():

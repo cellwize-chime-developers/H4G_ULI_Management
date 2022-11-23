@@ -625,27 +625,36 @@ def main():
         generateReport(dataFrame=targetCellList, prefix="targetCellList")
 
     if len(work_items) > 0:
-        if context.get('PROVISION_MODE') in ["OFFLINE_SIM", "ONLINE_SIM", "OPERATIONAL"]:
 
-            work_order = {
-                'description': "UPDATING NSADCMGMTCONFIG.UPPERLAYERINDICATIONSWITCH",
-                'mode': context.get('PROVISION_MODE'),
-                'method': 'NON_TRANSACTION',
-                'priority': '1',
-                'trackingId': context.get('TRACKING_ID'),
-                'workItems': work_items
-            }
+        work_order = {
+            'description': "ULI",
+            'mode': context.get('PROVISION_MODE'),
+            'method': 'NON_TRANSACTION',
+            'priority': '1',
+            'trackingId': context.get('TRACKING_ID'),
+            'workItems': work_items
+        }
 
-            logVar.printLog(f"context.get('TRACKING_ID') -> {context.get('TRACKING_ID')}")
-            _ = pgw.api.workorders.send_workorder(body=work_order)
+        logger.info('\t\t- Work-order ready!')
+        logger.info(json.dumps(work_order, indent=5))
 
-        else:
-            logVar.printLog(f"No PGW due to {context.get('PROVISION_MODE')}")
+        try:
+            if context.get('PROVISION_MODE') != 'OPEN_LOOP':
+
+                op_mode = context.get('PROVISION_MODE')
+                logger.info(f'main(): Pushing work order ({op_mode}) ...')
+                logVar.printLog(f"context.get('TRACKING_ID') -> {context.get('TRACKING_ID')}")
+                send_wo = pgw.api.workorders.send_workorder(body=work_order)
+                logger.info(send_wo.body)
+
+            else:
+                logger.info('\t\t- OPEN_LOOP execution - Not calling the PGW API')
+                
+        except:
+            logger.warning('\t\t- Error ocurred creating Work Order. No Work-orders push')
+
     else:
-        logVar.printLog("No cells meeting criteria for optimization")
-
-
-
+        logger.warning('\t\t- No Work-orders available to push')
 
 if __name__ == '__main__':
     main()
